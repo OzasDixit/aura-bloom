@@ -4,4 +4,12 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "vars": {
+    "GEMINI_API_KEY": "AIzaSyAQltkNghCARU7cHri49hg7kB13bx_Vsao",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_FAQ8dxlGC90yWdLIBiQ_pA_adyZiD4z",
+    "SUPABASE_URL": "https://rpkigtwfdboxjjsyvvij.supabase.co",
+    "VITE_SUPABASE_PROJECT_ID": "rpkigtwfdboxjjsyvvij",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_FAQ8dxlGC90yWdLIBiQ_pA_adyZiD4z",
+    "VITE_SUPABASE_URL": "https://rpkigtwfdboxjjsyvvij.supabase.co"
+  }
 }
