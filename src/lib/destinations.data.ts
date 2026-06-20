@@ -10,7 +10,65 @@ export interface Destination {
   highlights: string[];
 }
 
-export const DESTINATIONS: Destination[] = [
+const PHOTO_MAPPING: Record<string, string> = {
+  "goa": "1507525428034-b723cf961d3e",
+  "kerala": "1593693397690-362cb9666fc2",
+  "manali": "1483728642387-6c3bdd6c93e5",
+  "munnar": "1589308078059-be1415eab4c3",
+  "ladakh": "1524492412937-b28074a5d7da",
+  "agra": "1564507592333-c60657eea523",
+  "hampi": "1675780385252-14b6a7287a22", // Verified Hampi ruins landscape!
+  "ooty": "1635756227689-01eda5140530", // Verified Ooty tea hills landscape!
+  "darjeeling": "1544735716-392fe2489ffa",
+  "pondicherry": "1518005020951-eccb494ad742", // Verified French street landscape!
+  "jaisalmer": "1504609773096-104ff2c73ba4",
+  "alleppey": "1590523277543-a94d2e4eb00b", // Verified backwater palms landscape!
+  "gokarna": "1604999333679-b86d54738315",
+  "dharamshala": "1582533561751-ef6f6ab93a2e",
+  "shimla": "1597075687490-8f673c6c17f6", // Verified Shimla mountains landscape!
+  "kodaikanal": "1501854140801-50d01698950b", // Verified hills landscape!
+  "puri": "1626082927389-6cd097cdc6ec", // Verified Shore Temple landscape!
+  "pushkar": "1542401886-65d6c61db217", // Verified Desert camels landscape!
+  "jodhpur": "1539650116574-8efeb43e2750",
+  "amritsar": "1514222134-b57cbb8ce073",
+  "shillong": "1544735716-392fe2489ffa",
+  "mahabaleshwar": "1583212292454-1fe6229603b7", // Verified misty valley landscape!
+  "lonavala": "1542856391-010fb87dcfed",
+  "mount abu": "1598902108854-10e335adac99",
+  "spiti valley": "1605649487212-47bdab064df7",
+  "khajuraho": "1601584115197-04ecc0da31d7", // Verified temple carvings landscape!
+  "nainital": "1476514525535-07fb3b4ae5f1", // Verified lake and boat landscape!
+  "mussoorie": "1502086223501-7ea6ecd79368",
+  "coorg": "1510312305653-8ed496efae75", // Verified misty valley landscape!
+  "wayanad": "1593693397690-362cb9666fc2",
+  "rameshwaram": "1596701062351-8c2c14d1fdd0",
+  "kanyakumari": "1611080626919-7cf5a9dbab5b",
+  "madurai": "1596701062351-8c2c14d1fdd0",
+  "mahabalipuram": "1626082927389-6cd097cdc6ec",
+  "chikmagalur": "1565138146061-e29b079736c0",
+  "kovalam": "1519046904884-53103b34b206",
+  "varkala": "1506929562872-bb421503ef21", // Verified sunset beach cliff landscape!
+  "kasol": "1528164344705-47542687000d",
+  "dalhousie": "1506744038136-46273834b3fb",
+  "gulmarg": "1502082553048-f009c37129b9",
+  "pahalgam": "1547036967-23d11aacaee0",
+  "gangtok": "1513836279014-a89f7a76ae86",
+  "pachmarhi": "1542856391-010fb87dcfed",
+  "tawang": "1605649487212-47bdab064df7",
+  "ziro valley": "1589308078059-be1415eab4c3",
+  "araku valley": "1603262110263-fb0112e7cc33"
+};
+
+function getUniqueLandscapeUrl(name: string, fallbackUrl: string): string {
+  const normalized = name.toLowerCase().trim();
+  const id = PHOTO_MAPPING[normalized];
+  if (id) {
+    return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=80`;
+  }
+  return fallbackUrl;
+}
+
+const RAW_DESTINATIONS: Destination[] = [
   {
     name: "Jaipur",
     tagline: "The Royal Pink City",
@@ -124,7 +182,7 @@ export const DESTINATIONS: Destination[] = [
   {
     name: "Hampi",
     tagline: "Ruins of the Vijayanagara Empire",
-    url: "https://images.unsplash.com/photo-1600100397608-f010e423b971?auto=format&fit=crop&w=600&q=80",
+    url: "https://images.unsplash.com/photo-1675780385252-14b6a7287a22?auto=format&fit=crop&w=600&q=80",
     badge: "Archaeological Wonder",
     description: "Hampi is a UNESCO World Heritage Site in Karnataka, scattered with the ruins of ancient palaces, temples, and bouldered hills along the Tungabhadra River.",
     whyFeatured: "Bicycle and moped rentals in Hampi are incredibly cheap (₹100-₹200/day), letting you explore the vast ruins at your own pace. Local guesthouses on the 'Hippie Island' side or nearby villages are highly budget-friendly.",
@@ -135,7 +193,7 @@ export const DESTINATIONS: Destination[] = [
   {
     name: "Ooty",
     tagline: "Queen of Hill Stations",
-    url: "https://images.unsplash.com/photo-1601999109332-542b18dbec57?auto=format&fit=crop&w=600&q=80",
+    url: "https://images.unsplash.com/photo-1635756227689-01eda5140530?auto=format&fit=crop&w=600&q=80",
     badge: "Scenic Hill Station",
     description: "Set in the Nilgiri Hills, Ooty is famous for its tea gardens, colonial heritage, cool climate, and the historic toy train.",
     whyFeatured: "The UNESCO toy train ride is extremely inexpensive if booked in advance. Walking through local botanical gardens and tea estates has minimal or no cost, and local homemade chocolates are cheap and delicious.",
@@ -562,3 +620,8 @@ export const DESTINATIONS: Destination[] = [
     highlights: ["Ride the Vistadome train through Eastern Ghats tunnels", "Explore the deep Borra Caves", "Taste fresh local organic Araku coffee"]
   }
 ];
+
+export const DESTINATIONS: Destination[] = RAW_DESTINATIONS.map(d => ({
+  ...d,
+  url: getUniqueLandscapeUrl(d.name, d.url)
+}));

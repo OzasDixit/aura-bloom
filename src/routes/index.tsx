@@ -1,11 +1,63 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
-import { Sparkles, Compass, Wallet, MapPinned, Plane, Star, ArrowRight, Calendar, Hotel, UtensilsCrossed, Bus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Sparkles, Compass, Wallet, MapPinned, Plane, Star, ArrowRight, Calendar, Hotel, UtensilsCrossed, Bus, ChevronRight, ChevronLeft, Train, Clock } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { DESTINATIONS, type Destination } from "@/lib/destinations.data";
 import { supabase } from "@/lib/supabase";
+
+const MONTH_NAMES = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december"
+];
+
+function getMonthsFromRange(rangeStr: string): string[] {
+  const str = rangeStr.toLowerCase();
+  if (str.includes("year-round") || str.includes("all year") || str.includes("any time")) {
+    return [...MONTH_NAMES];
+  }
+  
+  const months: string[] = [];
+  const parts = str.split(",");
+  for (const part of parts) {
+    const range = part.trim().split("-");
+    if (range.length === 1) {
+      const startTrim = range[0].trim();
+      const found = MONTH_NAMES.find(m => m.startsWith(startTrim) || startTrim.startsWith(m));
+      if (found) months.push(found);
+    } else if (range.length === 2) {
+      const startTrim = range[0].trim();
+      const endTrim = range[1].trim();
+      const startIdx = MONTH_NAMES.findIndex(m => m.startsWith(startTrim) || startTrim.startsWith(m));
+      const endIdx = MONTH_NAMES.findIndex(m => m.startsWith(endTrim) || endTrim.startsWith(m));
+      
+      if (startIdx !== -1 && endIdx !== -1) {
+        let curr = startIdx;
+        while (curr !== endIdx) {
+          months.push(MONTH_NAMES[curr]);
+          curr = (curr + 1) % 12;
+        }
+        months.push(MONTH_NAMES[endIdx]);
+      }
+    }
+  }
+  return months;
+}
+
+function matchesSeason(bestTime: string, season: string): boolean {
+  if (season === "all") return true;
+  const activeMonths = getMonthsFromRange(bestTime);
+  const seasonMonths: Record<string, string[]> = {
+    winter: ["november", "december", "january", "february", "march", "october"],
+    summer: ["march", "april", "may", "june"],
+    monsoon: ["july", "august", "september", "october"]
+  };
+  const targetMonths = seasonMonths[season.toLowerCase()] || [];
+  return targetMonths.some(m => activeMonths.includes(m));
+}
+
+
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -78,7 +130,7 @@ function Index() {
   const resumeTimer = useRef<any>(null);
   const dragDistance = useRef(0);
   const [user, setUser] = useState<any>(null);
-
+  const [selectedSeason, setSelectedSeason] = useState<string>("all");
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -87,6 +139,14 @@ function Index() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
+
+    // Clear Supabase redirect hash parameters from URL
+    if (typeof window !== "undefined" && (window.location.hash.includes("access_token") || window.location.hash.includes("refresh_token"))) {
+      setTimeout(() => {
+        const cleanUrl = window.location.origin + window.location.pathname + window.location.search;
+        window.history.replaceState(null, "", cleanUrl);
+      }, 500);
+    }
 
     return () => {
       subscription.unsubscribe();
@@ -267,7 +327,7 @@ function Index() {
       <section className="relative z-10 mx-auto flex flex-col items-center justify-center text-center w-full max-w-5xl px-6 pt-20 pb-16 lg:pt-28 lg:pb-24 animate-fade-in">
         <div className="inline-flex items-center gap-2.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4.5 py-1.5 text-xs font-medium text-indigo-300 mb-8 backdrop-blur-md animate-scale-in">
           <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-          Introducing AI Itinerary Engine v2.0
+          Introducing Premium Itinerary Optimizer
         </div>
 
         <h1 className="font-display text-5xl font-semibold leading-[1.15] tracking-tight sm:text-7xl lg:text-[5.5rem] mb-6">
@@ -521,6 +581,29 @@ function Index() {
             <p className="mt-3 text-sm sm:text-base text-zinc-400 max-w-xl">
               Hand-picked locations offering rich experiences for under ₹1,500/day. Drag to scroll or click a card to see saving hacks.
             </p>
+
+            {/* Season Selector Tabs with spectacular transitions */}
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              {[
+                { id: "all", label: "🌎 All Seasons" },
+                { id: "winter", label: "❄️ Winter (Oct-Mar)" },
+                { id: "summer", label: "☀️ Summer (Mar-Jun)" },
+                { id: "monsoon", label: "🌧️ Monsoon (Jul-Oct)" }
+              ].map((season) => (
+                <button
+                  key={season.id}
+                  type="button"
+                  onClick={() => setSelectedSeason(season.id)}
+                  className={`px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase border cursor-pointer transition-all duration-500 hover:scale-105 active:scale-95 ${
+                    selectedSeason === season.id
+                      ? "bg-white text-black border-white shadow-[0_0_25px_rgba(255,255,255,0.35)] font-bold scale-[1.02]"
+                      : "bg-white/5 text-zinc-400 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/10"
+                  }`}
+                >
+                  {season.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Carousel Control Buttons */}
@@ -559,51 +642,71 @@ function Index() {
             className={`flex overflow-x-auto scrollbar-none select-none py-4 px-6 sm:px-12 gap-6 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             style={{ scrollBehavior: 'auto' }}
           >
-            {/* Double array for seamless loop */}
-            {[...DESTINATIONS, ...DESTINATIONS].map((dest, i) => (
-              <div
-                key={i}
-                onClick={() => handleCardClick(dest)}
-                className="group relative flex-shrink-0 w-72 sm:w-80 overflow-hidden rounded-[2.25rem] border border-white/5 bg-white/[0.02] aspect-[4/5] transition-all duration-500 hover:-translate-y-2 hover:border-white/20 hover:shadow-[0_20px_50px_rgba(99,102,241,0.15)]"
-              >
-                {/* Background Image */}
-                <img
-                  src={dest.url}
-                  alt={dest.name}
-                  draggable="false"
-                  className="absolute inset-0 w-full h-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-80"
-                />
+            {(() => {
+              const filtered = DESTINATIONS.filter(dest => matchesSeason(dest.bestTime, selectedSeason));
+              let displayDests = [...filtered];
+              if (displayDests.length > 0) {
+                while (displayDests.length < 8) {
+                  displayDests = [...displayDests, ...filtered];
+                }
+              }
+              const marqueeDests = [...displayDests, ...displayDests];
+              
+              if (marqueeDests.length === 0) {
+                return (
+                  <div className="w-full text-center py-24 text-zinc-500 font-mono text-sm uppercase tracking-widest">
+                    No destinations match this season.
+                  </div>
+                );
+              }
 
-                {/* Bottom Shadow Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0c0a09] via-[#0c0a09]/50 to-transparent opacity-90 transition-opacity duration-500" />
+              return marqueeDests.map((dest, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleCardClick(dest)}
+                  className="group relative flex-shrink-0 w-72 sm:w-80 overflow-hidden rounded-[2.25rem] border border-white/5 bg-white/[0.02] aspect-[4/5] transition-all duration-500 hover:-translate-y-2 hover:border-white/20 hover:shadow-[0_20px_50px_rgba(99,102,241,0.15)]"
+                >
+                  {/* Background Image */}
+                  <img
+                    src={dest.url}
+                    alt={dest.name}
+                    draggable="false"
+                    className="absolute inset-0 w-full h-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-80"
+                  />
 
-                {/* Details glassmorphic panel */}
-                <div className="absolute bottom-4 left-4 right-4 z-20 p-5 rounded-[1.75rem] bg-[#0c0a09]/60 border border-white/5 backdrop-blur-md transition-all duration-500 group-hover:bg-[#0c0a09]/85 group-hover:border-white/15">
-                  <h3 className="font-display text-xl font-bold text-white flex items-center gap-1.5 mb-1">
-                    <MapPinned className="h-4 w-4 text-indigo-400 shrink-0" />
-                    {dest.name}
-                  </h3>
+                  {/* Bottom Shadow Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c0a09] via-[#0c0a09]/50 to-transparent opacity-90 transition-opacity duration-500" />
 
-                  <p className="text-xs text-zinc-400 line-clamp-1 mb-3.5 group-hover:text-zinc-300 transition-colors">
-                    {dest.tagline}
-                  </p>
+                  {/* Details glassmorphic panel */}
+                  <div className="absolute bottom-4 left-4 right-4 z-20 p-5 rounded-[1.75rem] bg-[#0c0a09]/60 border border-white/5 backdrop-blur-md transition-all duration-500 group-hover:bg-[#0c0a09]/85 group-hover:border-white/15">
+                    <h3 className="font-display text-xl font-bold text-white flex items-center gap-1.5 mb-1">
+                      <MapPinned className="h-4 w-4 text-indigo-400 shrink-0" />
+                      {dest.name}
+                    </h3>
 
-                  <div className="flex items-center justify-between pt-2.5 border-t border-white/5 text-[11px] font-mono">
-                    <div className="flex items-center gap-1 text-indigo-400 font-semibold">
-                      <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                      <span>{dest.badge}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-zinc-400">
-                      <Calendar className="h-3.5 w-3.5 shrink-0" />
-                      <span>{dest.bestTime}</span>
+                    <p className="text-xs text-zinc-400 line-clamp-1 mb-3.5 group-hover:text-zinc-300 transition-colors">
+                      {dest.tagline}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-2.5 border-t border-white/5 text-[11px] font-mono">
+                      <div className="flex items-center gap-1 text-indigo-400 font-semibold">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                        <span>{dest.badge}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-zinc-400">
+                        <Calendar className="h-3.5 w-3.5 shrink-0" />
+                        <span>{dest.bestTime}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
       </section>
+
+
 
       {/* how */}
       <section id="how" className="relative z-10 mx-auto w-full max-w-5xl px-6 py-24">
